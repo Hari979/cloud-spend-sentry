@@ -1,0 +1,7 @@
+protobuf
+python-dotenv
+boto3
+langchain-openai
+langgraph
+langchain-core
+langchain-google-genai

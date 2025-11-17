@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+ENV/
+.venv/
+.env
+# Mac, VSCode
+.DS_Store
+.vscode/
+
+# Data & local state
+/data/
+*.sqlite
+session_memory.json
+long_term_memory.json
+
+# AWS credentials
+.aws/
+credentials
