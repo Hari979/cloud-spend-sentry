@@ -1,27 +1,29 @@
-````markdown
 # 🛡️ CloudSpend Sentry - Autonomous AWS FinOps Agent
 
-> **Capstone Project - Google AI Agents Intensive (Enterprise Track)** > *An intelligent SRE agent that monitors cloud costs, compares monthly spending, and proactively hunts for infrastructure waste.*
+> **Capstone Project - Google AI Agents Intensive (Enterprise Track)**
+>
+> *An intelligent SRE agent that monitors cloud costs, compares monthly spending, and proactively hunts for infrastructure waste.*
 
 ![Architecture Diagram](architecture_diagram.png)
-*(Note: Please replace this link with the architecture image generated for you earlier)*
 
 ---
 
 ## 💡 The Pitch
 
-### The Problem
+### 🚨 The Problem
 Cloud bills are complex and opaque. DevOps engineers and Finance teams often struggle to answer three basic questions:
+
 1.  *"Why is the bill higher this month?"*
 2.  *"Where exactly is the money going?"*
 3.  *"Are we paying for resources we aren't using?"*
 
 Manually auditing AWS Cost Explorer, cross-referencing EC2 usage metrics, and hunting for "zombie" snapshots takes hours of context switching.
 
-### The Solution
+### 🤖 The Solution
 **CloudSpend Sentry** is an autonomous agent acting as a 24/7 FinOps analyst. It doesn't just read the bill; it **investigates** infrastructure state.
 
 Instead of static dashboards, it offers a conversational interface to:
+
 * **Compare Costs:** "Why did my bill go up vs last month?" (Grand Total & Service Breakdown).
 * **Deep Scan:** "Find idle resources." (Checks CPU metrics, unattached volumes, old snapshots).
 * **Report:** Generates detailed financial breakdowns including tax and grand totals.
@@ -34,10 +36,11 @@ This agent was built using **Python**, **LangGraph**, and **Google Gemini 1.5 Fl
 
 ### 1. The Reasoning Engine (LangGraph)
 The agent uses a **cyclic graph architecture** (`Agent` <-> `Tools`). It doesn't just run a script; it thinks:
-* *Input:* "Why is my bill up?"
-* *Reasoning:* "I need to compare this month vs last month. I'll use `compare_monthly_costs`."
-* *Observation:* "EC2 went up $200."
-* *Next Step:* "I should scan for idle instances to see if that's the cause." -> Calls `scan_idle_instances`.
+
+* **Input:** "Why is my bill up?"
+* **Reasoning:** "I need to compare this month vs last month. I'll use `compare_monthly_costs`."
+* **Observation:** "EC2 went up $200."
+* **Next Step:** "I should scan for idle instances to see if that's the cause." → Calls `scan_idle_instances`.
 
 ### 2. The Toolbelt (AWS Boto3 Integration)
 The agent is equipped with **8 custom sensors** (Tools) that interact directly with the AWS API:
@@ -47,7 +50,7 @@ The agent is equipped with **8 custom sensors** (Tools) that interact directly w
 | **Financial** | `compare_monthly_costs` | Calculates Month-over-Month differences (Total + Top Movers). |
 | **Financial** | `get_monthly_cost_report` | Generates a full ledger for any specific month (incl. Tax). |
 | **Financial** | `get_top_5_spending_services`| Identifies budget drains for current or past months. |
-| **Financial** | `get_recent_cost_trends` | specific daily trend analysis. |
+| **Financial** | `get_recent_cost_trends` | Specific daily trend analysis. |
 | **Operational**| `scan_idle_instances` | **Advanced:** Checks CloudWatch metrics for <5% CPU utilization over 7 days. |
 | **Operational**| `scan_old_snapshots` | **Safety-First:** Finds snapshots >6 months old *not* linked to active AMIs. |
 | **Operational**| `scan_unused_ebs_volumes` | Identifies unattached storage. |
@@ -113,21 +116,3 @@ The agent successfully handles complex financial queries. Below are real outputs
 Launch the Streamlit Chat Interface:
 ```bash
 streamlit run app_ui.py
-````
-
-**Option 2: CLI Mode**
-Run the agent directly in the terminal:
-
-```bash
-python main.py
-```
-
------
-
-## 🔮 Future Roadmap
-
-1.  **Human-in-the-loop Remediation:** Allow the agent to *delete* the waste it finds after user confirmation (using LangGraph interrupts).
-2.  **Slack Integration:** Deploy as a bot to post weekly savings reports to the `#finops` channel.
-3.  **Anomaly Alerts:** Run a background cron job to proactively alert on spend spikes \>20%.
-
-<!-- end list -->
