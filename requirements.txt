@@ -1,3 +1,4 @@
+streamlit
 protobuf
 python-dotenv
 boto3

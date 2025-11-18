@@ -5,7 +5,6 @@ from langchain_core.tools import tool
 
 # --- AWS CLIENT INITIALIZATION ---
 # We initialize these globally so they are reused across calls.
-# Ensure your environment has AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION set.
 try:
     ce_client = boto3.client('ce')  # Cost Explorer
     ec2_client = boto3.client('ec2')  # EC2 (Compute & Storage)
@@ -21,16 +20,11 @@ def get_recent_cost_trends(days: int = 7):
     """
     Fetches daily AWS cost data for the specified number of past days.
     Useful for identifying spending spikes or trends.
-
-    Args:
-        days (int): The number of days to look back (default is 7).
     """
     try:
-        # AWS Cost Explorer requires dates in 'YYYY-MM-DD' format
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=days)
 
-        # Cost Explorer API Call
         response = ce_client.get_cost_and_usage(
             TimePeriod={
                 'Start': str(start_date),
@@ -40,7 +34,6 @@ def get_recent_cost_trends(days: int = 7):
             Metrics=['UnblendedCost']
         )
 
-        # Parse the complex JSON response into something the LLM can read easily
         costs = []
         for item in response['ResultsByTime']:
             date = item['TimePeriod']['Start']
@@ -57,6 +50,52 @@ def get_recent_cost_trends(days: int = 7):
 
 
 @tool
+def get_top_5_spending_services():
+    """
+    Identifies the top 5 most expensive AWS services for the current month-to-date.
+    Useful for understanding where the budget is actually going (e.g. EC2 vs RDS).
+    """
+    try:
+        # Get the date range (Start of this month to Now)
+        now = datetime.now()
+        start_of_month = now.replace(day=1).date()
+        end_date = now.date()
+
+        # If today is the 1st, look at last month instead to get useful data
+        if start_of_month == end_date:
+            start_of_month = (now.replace(day=1) - timedelta(days=1)).replace(day=1).date()
+
+        response = ce_client.get_cost_and_usage(
+            TimePeriod={
+                'Start': str(start_of_month),
+                'End': str(end_date)
+            },
+            Granularity='MONTHLY',
+            Metrics=['UnblendedCost'],
+            GroupBy=[
+                {'Type': 'DIMENSION', 'Key': 'SERVICE'}
+            ]
+        )
+
+        # Process and Sort Data
+        service_costs = []
+        for group in response['ResultsByTime'][0]['Groups']:
+            service_name = group['Keys'][0]
+            amount = float(group['Metrics']['UnblendedCost']['Amount'])
+            if amount > 0:
+                service_costs.append({'Service': service_name, 'CostUSD': amount})
+
+        # Sort by Cost (Descending) and take top 5
+        service_costs.sort(key=lambda x: x['CostUSD'], reverse=True)
+        top_5 = service_costs[:5]
+
+        return json.dumps(top_5, indent=2)
+
+    except Exception as e:
+        return f"Error fetching top spenders: {str(e)}"
+
+
+@tool
 def scan_unused_ebs_volumes():
     """
     Scans AWS for EBS (Elastic Block Store) volumes that are 'Available'
@@ -64,7 +103,6 @@ def scan_unused_ebs_volumes():
     leaking money.
     """
     try:
-        # Filter for volumes where status is 'available'
         response = ec2_client.describe_volumes(
             Filters=[{'Name': 'status', 'Values': ['available']}]
         )
@@ -72,7 +110,6 @@ def scan_unused_ebs_volumes():
         unused_volumes = []
         for vol in response['Volumes']:
             # Estimate cost (Rough approx based on gp3 pricing ~0.08 USD/GB/Month)
-            # This helps the agent prioritize larger wasted volumes
             size_gb = vol['Size']
             est_cost = size_gb * 0.08
 
@@ -100,12 +137,10 @@ def scan_unassociated_ips():
     with a running instance. AWS charges for these when they are idle.
     """
     try:
-        # Get all addresses
         response = ec2_client.describe_addresses()
 
         unused_ips = []
         for ip in response['Addresses']:
-            # If 'AssociationId' is missing, the IP is sitting idle
             if 'AssociationId' not in ip:
                 unused_ips.append({
                     'PublicIp': ip['PublicIp'],

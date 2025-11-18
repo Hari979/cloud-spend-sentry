@@ -12,44 +12,45 @@ from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
-# 2. IMPORT MEMORY (SQLITE)
-# We use the persistent DB we created in app/memory.py
-# If you haven't created app/memory.py yet, swap this import to:
-# from langgraph.checkpoint.memory import MemorySaver
+# 2. IMPORT MEMORY
 try:
     from app.memory import get_checkpointer
 except ImportError:
+    # Fallback if memory.py isn't created yet
     from langgraph.checkpoint.memory import MemorySaver
 
 
     def get_checkpointer():
         return MemorySaver()
 
-# Import your custom tools
+# 3. IMPORT TOOLS (Including the new Top Spenders tool)
 from app.tools import (
     get_recent_cost_trends,
     scan_unused_ebs_volumes,
-    scan_unassociated_ips
+    scan_unassociated_ips,
+    get_top_5_spending_services
 )
 
 # --- CONFIGURATION ---
 
-# Get the key explicitly
 api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
     raise ValueError("❌ GOOGLE_API_KEY is missing. Please check your .env file.")
 
-# Define the LLM
-# NOTE: We use 'gemini-1.5-flash' as it is the current standard stable model.
-# If this fails, try 'gemini-pro'.
+# Define the LLM (Using 1.5 Flash as confirmed working)
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     temperature=0,
     google_api_key=api_key
 )
 
-# Define the tools list
-tools = [get_recent_cost_trends, scan_unused_ebs_volumes, scan_unassociated_ips]
+# Define the tools list (Added new tool here)
+tools = [
+    get_recent_cost_trends,
+    get_top_5_spending_services,
+    scan_unused_ebs_volumes,
+    scan_unassociated_ips
+]
 
 # Bind tools to the LLM
 llm_with_tools = llm.bind_tools(tools)
@@ -70,39 +71,35 @@ def agent_node(state: AgentState):
     You are 'CloudSpend Sentry', an expert AWS FinOps and SRE Agent.
 
     YOUR GOAL:
-    Analyze cloud costs and identify waste to save the user money.
+    Analyze cloud costs, understand spending breakdown, and identify waste.
 
     YOUR PROCESS:
-    1. Always start by checking recent cost trends using 'get_recent_cost_trends'.
-    2. Analyze the data. Is there a spike?
-    3. If costs look high or suspicious, PROACTIVELY use scanning tools:
+    1. TRENDS: Start by checking 'get_recent_cost_trends' to see if costs are rising.
+    2. BREAKDOWN: Use 'get_top_5_spending_services' to see WHERE the money is going.
+    3. WASTE: If you see high costs or spikes, PROACTIVELY use scanning tools:
        - 'scan_unused_ebs_volumes'
        - 'scan_unassociated_ips'
-    4. If you find waste, calculate the total potential savings.
-    5. Summarize your findings clearly.
+    4. REPORT: Calculate potential savings from waste and summarize the top spenders.
 
     BEHAVIOR:
     - Be concise and professional.
-    - Use the tool outputs for data.
+    - Use the tool outputs for data. Don't guess.
     """)
 
     # Invoke the LLM
     response = llm_with_tools.invoke([system_prompt] + messages)
 
-    # --- 🧹 CLEAN UP GEMINI RESPONSE (The Fix) ---
+    # --- 🧹 CLEAN UP GEMINI RESPONSE ---
     # Gemini sometimes returns a mixed list [{'text': '...'}, {'extras': ...}]
-    # We scrub this so only the clean text remains.
     if isinstance(response.content, list):
         clean_text = ""
         for part in response.content:
-            # Check if the part is a dictionary and has a 'text' key
             if isinstance(part, dict) and "text" in part:
                 clean_text += part["text"]
-            # If it's just a string (rare but possible), append it
             elif isinstance(part, str):
                 clean_text += part
         response.content = clean_text
-    # ---------------------------------------------
+    # -----------------------------------
 
     return {"messages": [response]}
 
@@ -128,7 +125,6 @@ workflow.add_conditional_edges("agent", should_continue)
 workflow.add_edge("tools", "agent")
 
 # --- 4. MEMORY & COMPILATION ---
-# Use SQLite for persistence (Requirement for Capstone)
 checkpointer = get_checkpointer()
 
 app = workflow.compile(checkpointer=checkpointer)
