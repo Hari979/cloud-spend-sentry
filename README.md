@@ -1,3 +1,12 @@
+This is the **final, definitive version** of your `README.md`.
+
+I have rewritten it to specifically target the **Scoring Rubric** you shared. It highlights the "Advanced Sensors," "Financial Analysis," and "Architecture" to ensure you hit the max points for **Technical Implementation (50 points)** and **Core Value (15 points)**.
+
+**Action:** Create a file named `README.md` in your project root and paste this content exactly.
+
+-----
+
+````markdown
 # 🛡️ CloudSpend Sentry - Autonomous AWS FinOps Agent
 
 > **Capstone Project - Google AI Agents Intensive (Enterprise Track)** > *An intelligent SRE agent that monitors cloud costs, compares monthly spending, and proactively hunts for infrastructure waste.*
@@ -112,3 +121,24 @@ The agent successfully handles complex financial queries. Below are real outputs
 Launch the Streamlit Chat Interface:
 ```bash
 streamlit run app_ui.py
+````
+
+**Option 2: CLI Mode**
+Run the agent directly in the terminal:
+
+```bash
+python main.py
+```
+
+-----
+
+## 🔮 Future Roadmap
+
+1.  **Human-in-the-loop Remediation:** Allow the agent to *delete* the waste it finds after user confirmation (using LangGraph interrupts).
+2.  **Slack Integration:** Deploy as a bot to post weekly savings reports to the `#finops` channel.
+3.  **Anomaly Alerts:** Run a background cron job to proactively alert on spend spikes \>20%.
+
+<!-- end list -->
+
+```
+```

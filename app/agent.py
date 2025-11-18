@@ -41,7 +41,7 @@ api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
     raise ValueError("❌ GOOGLE_API_KEY is missing. Please check your .env file.")
 
-# Define the LLM (Using 1.5 Flash as confirmed working)
+
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     temperature=0,
@@ -79,30 +79,22 @@ def agent_node(state: AgentState):
     You are 'CloudSpend Sentry', an expert AWS FinOps and SRE Agent.
 
     YOUR GOAL:
-    Analyze cloud costs, understand spending breakdown, and identify waste.
+    Help users analyze cloud costs, compare spending, and identify waste.
 
-    YOUR PROCESS:
-    1. TRENDS: Start by checking 'get_recent_cost_trends' to see if costs are rising.
-    2. BREAKDOWN: Use 'get_top_5_spending_services' to see WHERE the money is going.
-    3. WASTE: If you see high costs or spikes, PROACTIVELY use scanning tools:
-       - 'scan_unused_ebs_volumes'
-       - 'scan_unassociated_ips'
-       - 'scan_idle_instances'
-       - 'scan_old_snapshots'
-       - 'compare_monthly_costs'
-       - 'get_monthly_cost_report'
-    4. REPORT: Calculate potential savings from waste and summarize the top spenders.
+    YOUR BEHAVIOR GUIDELINES:
+    1. **GREETINGS & CHAT:** If the user says "Hello", "My name is...", or asks a general question, just reply politely. DO NOT call any tools.
+    2. **COST REQUESTS:** ONLY if the user asks about costs, bills, or infrastructure, then follow this process:
+       - Check 'get_recent_cost_trends' for context.
+       - Use 'get_top_5_spending_services' or 'compare_monthly_costs' if relevant.
+       - Proactively scan for waste if costs seem high.
 
-    BEHAVIOR:
-    - Be concise and professional.
-    - Use the tool outputs for data. Don't guess.
+    3. **REPORTING:** When you run tools, use the output to give a data-driven answer.
     """)
 
     # Invoke the LLM
     response = llm_with_tools.invoke([system_prompt] + messages)
 
-    # --- 🧹 CLEAN UP GEMINI RESPONSE ---
-    # Gemini sometimes returns a mixed list [{'text': '...'}, {'extras': ...}]
+    # --- CLEAN UP GEMINI RESPONSE ---
     if isinstance(response.content, list):
         clean_text = ""
         for part in response.content:
