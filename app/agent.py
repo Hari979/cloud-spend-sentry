@@ -28,7 +28,11 @@ from app.tools import (
     get_recent_cost_trends,
     scan_unused_ebs_volumes,
     scan_unassociated_ips,
-    get_top_5_spending_services
+    get_top_5_spending_services,
+    scan_idle_instances,
+    scan_old_snapshots,
+    compare_monthly_costs,
+    get_monthly_cost_report
 )
 
 # --- CONFIGURATION ---
@@ -49,7 +53,11 @@ tools = [
     get_recent_cost_trends,
     get_top_5_spending_services,
     scan_unused_ebs_volumes,
-    scan_unassociated_ips
+    scan_unassociated_ips,
+    scan_idle_instances,
+    scan_old_snapshots,
+    compare_monthly_costs,
+    get_monthly_cost_report
 ]
 
 # Bind tools to the LLM
@@ -79,6 +87,10 @@ def agent_node(state: AgentState):
     3. WASTE: If you see high costs or spikes, PROACTIVELY use scanning tools:
        - 'scan_unused_ebs_volumes'
        - 'scan_unassociated_ips'
+       - 'scan_idle_instances'
+       - 'scan_old_snapshots'
+       - 'compare_monthly_costs'
+       - 'get_monthly_cost_report'
     4. REPORT: Calculate potential savings from waste and summarize the top spenders.
 
     BEHAVIOR:
