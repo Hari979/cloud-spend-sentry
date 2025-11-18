@@ -1,5 +1,3 @@
------
-
 ````markdown
 # 🛡️ CloudSpend Sentry - Autonomous AWS FinOps Agent
 
@@ -133,6 +131,3 @@ python main.py
 3.  **Anomaly Alerts:** Run a background cron job to proactively alert on spend spikes \>20%.
 
 <!-- end list -->
-
-```
-```
