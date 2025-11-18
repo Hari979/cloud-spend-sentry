@@ -116,3 +116,15 @@ The agent successfully handles complex financial queries. Below are real outputs
 Launch the Streamlit Chat Interface:
 ```bash
 streamlit run app_ui.py
+```
+Option 2: CLI Mode Run the agent directly in the terminal:
+```bash
+python main.py
+```
+
+🔮 Future Roadmap
+Human-in-the-loop Remediation: Allow the agent to delete the waste it finds after user confirmation (using LangGraph interrupts).
+
+Slack Integration: Deploy as a bot to post weekly savings reports to the #finops channel.
+
+Anomaly Alerts: Run a background cron job to proactively alert on spend spikes >20%.
